@@ -25,6 +25,9 @@ import numpy as np
 from dash.dependencies import Output, Input
 import dash_table
 
+# my_path='/Users/ehaas/Documents/Python/Flask-pubsub-endpoint/' #local build
+my_path='Flask-pubsub-endpoint/' #pythonanywhere build
+
 my_types = [
         'handshake',
         'heartbeat',
@@ -79,7 +82,7 @@ app.layout = html.Div(
                         style = {'float': 'right',},
                     ),
                 html.H1(
-                    children="ADT Notifier", 
+                    children="ADT Notifier",
                     className="header-title",
                     #style={"display": "inline", "float":"center,"},
                 )
@@ -91,7 +94,7 @@ app.layout = html.Div(
                         'padding-right' : '1%',
                         'height' : 'auto',}
                     ),
-               
+
                 html.P(
                     children="Da Vinci Notifications project is planning to adopt the updated FHIR Subscriptions framework for its use cases.  This Dashboard demonstrates using subscriptions to notify a careteam member of ADT events.",
                     className="header-description",
@@ -122,7 +125,7 @@ app.layout = html.Div(
                                 {"label": my_type, "value": my_type}
                                 for my_type in my_types
                             ], # todo make static list!!
-                            value="event-notification",	
+                            value="event-notification",
                             clearable=False,
                             searchable=False,
                             className="dropdown"
@@ -146,7 +149,7 @@ app.layout = html.Div(
         ),
         html.Div(
             children=[
-                        
+
                 html.Div(
                     children=dash_table.DataTable(
                         id="volume-chart",
@@ -162,7 +165,7 @@ app.layout = html.Div(
                         'fontWeight': 'bold'
                     },
                     #style_as_list_view=True,
-              
+
                     ),
                     className="card",
                 )
@@ -180,7 +183,7 @@ app.layout = html.Div(
     ],
 )
 def update_topics(n_intervals):
-    data = pd.read_csv("/Users/ehaas/Documents/Python/Flask-pubsub-endpoint/data.csv")
+    data = pd.read_csv(f"{my_path}data.csv")
     my_options=[{"label": topic, "value": topic} for topic in np.sort(data.topic.unique())]
     #print(my_options)
     return my_options
@@ -198,15 +201,15 @@ def update_topics(n_intervals):
     ],
 )
 def update_topics(n_intervals):
-    data = pd.read_csv("/Users/ehaas/Documents/Python/Flask-pubsub-endpoint/data.csv")
+    data = pd.read_csv(f"{my_path}data.csv")
     data["timestamp"] = pd.to_datetime(data["timestamp"], format="%Y-%m-%d")
     #print(f'data.timestamp.min().date()= {data.timestamp.min().date()}')
     min_da=data.timestamp.min().date()
     max_da=data.timestamp.max().date()
     my_start_date=data.timestamp.min().date()
     my_end_date=data.timestamp.max().date()
-   
-    return [min_da,max_da,my_start_date,my_end_date]  
+
+    return [min_da,max_da,my_start_date,my_end_date]
 
 @app.callback(
     [
@@ -222,7 +225,7 @@ def update_topics(n_intervals):
     ],
 )
 def update_charts(topic, my_type, start_date, end_date, n_intervals):
-    data = pd.read_csv("/Users/ehaas/Documents/Python/Flask-pubsub-endpoint/data.csv")
+    data = pd.read_csv(f"{my_path}data.csv")
     #data["timestamp"] = pd.to_datetime(data["timestamp"], format="%Y-%m-%d")
     # mask = (
     #     (data.topic == topic)
@@ -231,11 +234,11 @@ def update_charts(topic, my_type, start_date, end_date, n_intervals):
     #     & (data.timestamp <= end_date)
     # )
     # filtered_data = data.loc[mask, :]
-    
+
 
     #volume_chart_data = filtered_data.to_dict('records')
     volume_chart_data = data.to_dict('records')
-    
+
     return (
         volume_chart_data,
     )
