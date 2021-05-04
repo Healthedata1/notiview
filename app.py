@@ -1,7 +1,8 @@
 '''
-Create dashboard app to receive notifications for ADTs
-display as a table
-sort by time, person, provider, etc - future
+Create dashboard app to receive notifications for ADTs:
+ - automatically refreshes
+- display as a table
+- filter by time, type and topic
 Use reciever as Flask app with Post to get notifications
 Save notifications in a CSV file to start then as a database
 Consider saving as native json
@@ -10,9 +11,10 @@ Deploy to Pythonanywhere
 This is all about making a pretty output that is interactive
 
 future stuff
+ - add about stuff
+ - sort by time, type and topic
  - click on notification and get bundle back Using flask app (using transaction or a series of gets) and display as a card next to the table
- - add an update button (or automatically refresh)
- - generate a narrative of the results
+as a narrative of the results
 '''
 
 
@@ -25,10 +27,18 @@ import numpy as np
 from dash.dependencies import Output, Input
 import dash_table
 
-# my_path='/Users/ehaas/Documents/Python/Flask-pubsub-endpoint/' #local build
-my_path='Flask-pubsub-endpoint/' #pythonanywhere build
+my_path='/Users/ehaas/Documents/Python/Flask-pubsub-endpoint/' #local build
+#my_path='Flask-pubsub-endpoint/' #pythonanywhere build
+
+my_topics = {
+        "All-Topics":"all",
+        'Encounter-Start': 'http://argonautproject.org/encounters-ig/SubscriptionTopic/encounter-start',
+        'Encounter-End': 'http://argonautproject.org/encounters-ig/SubscriptionTopic/encounter-end',
+        'Encounter-Transfer': 'http://argonautproject.org/encounters-ig/SubscriptionTopic/encounter-transfer',
+         }
 
 my_types = [
+        "all-types",
         'handshake',
         'heartbeat',
         'event-notification',
@@ -57,7 +67,7 @@ external_stylesheets = [
     },
 ]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-app.title = "Using Subscriptions for Da Vinci Notifications!"
+app.title = "Da Vinci ADT Notifier!"
 
 app.layout = html.Div(
     children=[
@@ -109,7 +119,11 @@ app.layout = html.Div(
                         html.Div(children="Topic", className="menu-title"),
                         dcc.Dropdown(
                             id="topic-filter",
-                            value="http://argonautproject.org/encounters-ig/SubscriptionTopic/encounter-start",
+                            options=[
+                            {"label": k, "value": v, "title": v}
+                             for k,v in my_topics.items()
+                            ],
+                            value="all",
                             clearable=False,
                             className="dropdown"
                         )
@@ -122,10 +136,10 @@ app.layout = html.Div(
                         dcc.Dropdown(
                             id="type-filter",
                             options=[
-                                {"label": my_type, "value": my_type}
+                                {"label": my_type, "value": my_type,}
                                 for my_type in my_types
-                            ], # todo make static list!!
-                            value="event-notification",
+                            ],
+                            value="all-types",
                             clearable=False,
                             searchable=False,
                             className="dropdown"
@@ -176,17 +190,17 @@ app.layout = html.Div(
     ]
 )
 
-@app.callback(
-    Output("topic-filter", "options"),
-    [
-        Input('interval-component', 'n_intervals'),
-    ],
-)
-def update_topics(n_intervals):
-    data = pd.read_csv(f"{my_path}data.csv")
-    my_options=[{"label": topic, "value": topic} for topic in np.sort(data.topic.unique())]
-    #print(my_options)
-    return my_options
+# @app.callback(
+#     Output("topic-filter", "options"),
+#     [
+#         Input('interval-component', 'n_intervals'),
+#     ],
+# )
+# def update_topics(n_intervals):
+#     data = pd.read_csv(f"{my_path}data.csv")
+#     my_options=[{"label": topic, "value": topic} for topic in np.sort(data.topic.unique())]
+#     #print(my_options)
+#     return my_options
 
 @app.callback(
     [
@@ -200,7 +214,7 @@ def update_topics(n_intervals):
         Input('interval-component', 'n_intervals'),
     ],
 )
-def update_topics(n_intervals):
+def update_period(n_intervals):
     data = pd.read_csv(f"{my_path}data.csv")
     data["timestamp"] = pd.to_datetime(data["timestamp"], format="%Y-%m-%d")
     #print(f'data.timestamp.min().date()= {data.timestamp.min().date()}')
@@ -226,18 +240,22 @@ def update_topics(n_intervals):
 )
 def update_charts(topic, my_type, start_date, end_date, n_intervals):
     data = pd.read_csv(f"{my_path}data.csv")
-    #data["timestamp"] = pd.to_datetime(data["timestamp"], format="%Y-%m-%d")
-    # mask = (
-    #     (data.topic == topic)
-    #     & (data.type == my_type)
-    #     & (data.timestamp >= start_date)
-    #     & (data.timestamp <= end_date)
-    # )
-    # filtered_data = data.loc[mask, :]
 
+    data["timestamp"] = pd.to_datetime(data["timestamp"], format="%Y-%m-%d")
+    print(data['timestamp'])
+    mask = (
+         (data.timestamp.dt.strftime('%Y-%m-%d') >= start_date)
+      & (data.timestamp.dt.strftime('%Y-%m-%d') <= end_date)
+        )
+    data = data.loc[mask, :]
 
-    #volume_chart_data = filtered_data.to_dict('records')
-    volume_chart_data = data.to_dict('records')
+    if  topic != 'all':
+        data = data.loc[data["topic"]==topic]
+    if  my_type != 'all-types':
+        data = data.loc[data["type"]==my_type]
+
+    sorted_filtered_data = data.sort_values("timestamp", ascending=False)
+    volume_chart_data = sorted_filtered_data.to_dict('records')
 
     return (
         volume_chart_data,
