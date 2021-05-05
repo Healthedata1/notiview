@@ -12,7 +12,6 @@ This is all about making a pretty output that is interactive
 
 future stuff
  - add about stuff
- - sort by time, type and topic
  - click on notification and get bundle back Using flask app (using transaction or a series of gets) and display as a card next to the table
 as a narrative of the results
 '''
@@ -212,16 +211,18 @@ app.layout = html.Div(
 
     [
         Input('interval-component', 'n_intervals'),
+        Input("date-range", "start_date"),
+        Input("date-range", "end_date"),
     ],
 )
-def update_period(n_intervals):
+def update_period(n_intervals, start_date, end_date):
     data = pd.read_csv(f"{my_path}data.csv")
     data["timestamp"] = pd.to_datetime(data["timestamp"], format="%Y-%m-%d")
     #print(f'data.timestamp.min().date()= {data.timestamp.min().date()}')
     min_da=data.timestamp.min().date()
     max_da=data.timestamp.max().date()
-    my_start_date=data.timestamp.min().date()
-    my_end_date=data.timestamp.max().date()
+    my_start_date=data.timestamp.min().date() if start_date is None else start_date
+    my_end_date=data.timestamp.max().date() if end_date is None else end_date
 
     return [min_da,max_da,my_start_date,my_end_date]
 
