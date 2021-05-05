@@ -154,6 +154,7 @@ app.layout = html.Div(
                             ),
                         dcc.DatePickerRange( # todo update dynamically
                             id="date-range",
+                            clearable=True,
                         )
                     ]
                 )
