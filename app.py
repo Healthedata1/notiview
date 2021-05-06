@@ -1,4 +1,6 @@
 '''
+This is all about making a pretty output that is interactive
+
 Create dashboard app to receive notifications for ADTs:
  - automatically refreshes
 - display as a table
@@ -8,23 +10,26 @@ Save notifications in a CSV file to start then as a database
 Consider saving as native json
 Deploy to Pythonanywhere
 
-This is all about making a pretty output that is interactive
-
 future stuff
- - add about stuff
+ - add about me link
  - click on notification and get bundle back Using flask app (using transaction or a series of gets) and display as a card next to the table
 as a narrative of the results
+    - limit active cells only to event_id rows
+    - create and use hidden row data and display only clickable id columns
+    - link to actual id data
+    - put cards next each other
+    - links to to resouces
+    - audit logging
 '''
-
-
 
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
 import numpy as np
-from dash.dependencies import Output, Input
+from dash.dependencies import Output, Input, State
 import dash_table
+import get_resources as get_res
 
 my_path='/Users/ehaas/Documents/Python/Flask-pubsub-endpoint/' #local build
 #my_path='Flask-pubsub-endpoint/' #pythonanywhere build
@@ -72,7 +77,7 @@ app.layout = html.Div(
     children=[
         dcc.Interval(
             id='interval-component',
-            interval=5*1000, # in milliseconds (every 5 seconds)
+            interval=15*1000, # in milliseconds (every 15 seconds)
             n_intervals=0
         ),
         html.Div(
@@ -166,7 +171,7 @@ app.layout = html.Div(
 
                 html.Div(
                     children=dash_table.DataTable(
-                        id="volume-chart",
+                        id="noti-table",
                         columns = [ {'name' : i , 'id': i} for i in data_columns],
                     style_cell={'textAlign': 'left'},
                     # style_cell_conditional=[
@@ -182,25 +187,47 @@ app.layout = html.Div(
 
                     ),
                     className="card",
-                )
-
+                ),
+                html.Div(
+                    children=dcc.Markdown(
+                        id = "click-data",
+                        style={
+                            'backgroundColor': 'rgb(255, 255, 255)',
+                        },
+                        ),
+                    className="card",
+                ),
             ],
             className="wrapper"
         )
     ]
 )
 
-# @app.callback(
-#     Output("topic-filter", "options"),
-#     [
-#         Input('interval-component', 'n_intervals'),
-#     ],
-# )
-# def update_topics(n_intervals):
-#     data = pd.read_csv(f"{my_path}data.csv")
-#     my_options=[{"label": topic, "value": topic} for topic in np.sort(data.topic.unique())]
-#     #print(my_options)
-#     return my_options
+# define callback
+@app.callback(
+    Output('click-data', 'children'),
+    [Input('noti-table', 'active_cell')],
+     # (A) pass table as data input to get current value from active cell "coordinates"
+    [State('noti-table', 'data')]
+)
+def display_click_data(active_cell, table_data):
+    if active_cell:
+        #cell = dumps(active_cell, indent=2)
+        row = active_cell['row']
+        col = active_cell['column_id']
+        value = table_data[row][col]
+        out = get_res.enc_data(
+                my_type="Encounter",
+                my_id="2081026",
+                my_base="http://hapi.fhir.org/baseR4",
+                )  # use value to get data through a series of Gets and return as a table of data
+        out = f'### Encounter {value} Data\n\n{out}'
+    else:
+        value = "no value"
+        out = 'no cell selected'
+
+    #return f'{value} gets you: {dumps(out, indent=2)}'
+    return out
 
 @app.callback(
     [
@@ -230,7 +257,7 @@ def update_period(n_intervals, start_date, end_date):
 @app.callback(
     [
         #Output("price-chart", "figure"),
-        Output("volume-chart", "data"),
+        Output("noti-table", "data"),
     ],
     [
         Input("topic-filter", "value"),
