@@ -21,10 +21,15 @@ def get_res(my_base,my_type,my_id, my_params=None,):
     and return as a table of data
     '''
     enc = get(url=f'{my_base}/{my_type}/{my_id}', params=my_params)
-    return enc.json()
+    try:
+        return enc.json()
+    except Exception as e:
+        print(e)
+        return
 
 
-def enc_data(my_type,my_id,my_base,):
+
+def enc_data(my_base,my_type,my_id,):
 
     #for k,v in my_dict.items():
         #print(f'{k} = {v}')
@@ -34,78 +39,79 @@ def enc_data(my_type,my_id,my_base,):
 
     try:
         my_dict["encounter_type"] = enc['type'][0]['text']
-    except KeyError:
+    except (KeyError, TypeError):
         my_dict["encounter_type"] = None
     try:
         my_dict["encounter_class"] = enc['class']['code']
-    except KeyError:
+    except (KeyError,TypeError):
         my_dict["encounter_class"] = None
     try:
         my_dict["encounter_time"] = enc['period']['start']
-    except KeyError:
+    except (KeyError,TypeError):
         my_dict["encounter_time"] = None
     try:
         my_dict["encounter_reason"] = enc['reason']
-    except KeyError:
+    except (KeyError,TypeError):
         my_dict["encounter_reason"] = None
     try:
         my_dict["discharge_disposition"] = enc['dd']
-    except KeyError:
+    except (KeyError,TypeError):
         my_dict["discharge_disposition"] = None
 
     my_type = "Patient"
-    my_id = enc['subject']['reference'].split('/')[-1]
-    pat = get_res(my_base,my_type,my_id)
-    #print(pat)
+
     try:
+        my_id = enc['subject']['reference'].split('/')[-1]
+        pat = get_res(my_base,my_type,my_id)
+        #print(pat)
         my_dict["patient"] = f"{pat['name'][0]['given'][0]} {pat['name'][0]['family']}"
-    except KeyError:
+    except (KeyError,TypeError):
         my_dict["patient"] = None
 
     my_type = "Practitioner"
-    my_id = enc['participant'][0]['individual']['reference'].split('/')[-1]
-    pract = get_res(my_base,my_type,my_id)
-    #print(pract)
     try:
+        my_id = enc['participant'][0]['individual']['reference'].split('/')[-1]
+        pract = get_res(my_base,my_type,my_id)
+        #print(pract)
         my_dict["practitioner"] = f"{pract['name'][0]['given'][0]} {pract['name'][0]['family']}"
-    except KeyError:
+    except (KeyError,TypeError):
         my_dict["practitioner"] = None
 
     my_type = "Location"
-    my_id = enc['location'][0]['location']['reference'].split('/')[-1]
-    loc = get_res(my_base,my_type,my_id)
-    #print(loc)
     try:
+        my_id = enc['location'][0]['location']['reference'].split('/')[-1]
+        loc = get_res(my_base,my_type,my_id)
+        #print(loc)
         my_dict["location"]= loc['location']['name']
-    except KeyError:
+    except (KeyError,TypeError):
         my_dict["location"] = None
 
 
     my_type = "Organization"
-    my_id = enc['serviceProvider']['reference'].split('/')[-1]
-    org = get_res(my_base,my_type,my_id)
-    #print(loc)
     try:
+        my_id = enc['serviceProvider']['reference'].split('/')[-1]
+        org = get_res(my_base,my_type,my_id)
+        #print(loc)
         my_dict["provider_organization"]= org['name']
-    except KeyError:
+    except (KeyError,TypeError):
         my_dict["provider_organization"] = None
 
     my_type = "Condition"
     my_id = ''
-    cond = get_res(my_base,my_type,my_id,my_params={'encounter':enc['id'],'patient':pat['id']},)
-    cond=cond['entry'][0]['resource']
     try:
+        cond = get_res(my_base,my_type,my_id,my_params={'encounter':enc['id'],'patient':pat['id']},)
+        cond=cond['entry'][0]['resource']
         my_dict["encounter_diagnosis"]= cond['code']['text']
-    except KeyError:
+    except (KeyError,TypeError):
         my_dict["encounter_diagnosis"] = None
 
     my_type = "Coverage"
     my_id = ''
-    cov = get_res(my_base,my_type,my_id,my_params={'patient':pat['id']},)
-    cov=cov['entry'][0]['resource']
     try:
+        cov = get_res(my_base,my_type,my_id,my_params={'patient':pat['id']},)
+        cov=cov['entry'][0]['resource']
         my_dict["payer"]= cov['payor'][0]['display']
-    except KeyError:
+    except (KeyError,TypeError,UnboundLocalError):
         my_dict["payer"] = None
 
     out = ""
@@ -115,9 +121,9 @@ def enc_data(my_type,my_id,my_base,):
 
 def main():
     my_type = "Encounter"
-    my_id = "2081026"
-    my_base = "http://hapi.fhir.org/baseR4"
-    print(enc_data(my_type,my_id,my_base,))
+    my_id = "2073884"
+    my_base = "https://server.subscriptions.argo.run"
+    print(enc_data(my_base,my_type,my_id,))
 
 # run app
 if __name__ == '__main__':

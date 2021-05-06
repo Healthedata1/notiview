@@ -5,6 +5,7 @@ Create dashboard app to receive notifications for ADTs:
  - automatically refreshes
 - display as a table
 - filter by time, type and topic
+- link to actual id data  ( catch errors - ignore history for now! )
 Use reciever as Flask app with Post to get notifications
 Save notifications in a CSV file to start then as a database
 Consider saving as native json
@@ -14,12 +15,11 @@ future stuff
  - add about me link
  - click on notification and get bundle back Using flask app (using transaction or a series of gets) and display as a card next to the table
 as a narrative of the results
-    - limit active cells only to event_id rows
-    - create and use hidden row data and display only clickable id columns
-    - link to actual id data
-    - put cards next each other
-    - links to to resouces
-    - audit logging
+    - limit active cells only to event_id rows - unable to find information on how to do this - med
+    - create and use hidden row data and display only clickable id columns - hi
+    - put cards next each other - med
+    - links to to resouces -low
+    - audit logging - low
 '''
 
 import dash
@@ -124,7 +124,7 @@ app.layout = html.Div(
                         dcc.Dropdown(
                             id="topic-filter",
                             options=[
-                            {"label": k, "value": v, "title": v}
+                            {"label": k, "value": v, "title": v} # change value to k when map values to name
                              for k,v in my_topics.items()
                             ],
                             value="all",
@@ -184,7 +184,7 @@ app.layout = html.Div(
                         'fontWeight': 'bold'
                     },
                     #style_as_list_view=True,
-
+                    # add hidden columns for topic url and event_id
                     ),
                     className="card",
                 ),
@@ -211,20 +211,27 @@ app.layout = html.Div(
     [State('noti-table', 'data')]
 )
 def display_click_data(active_cell, table_data):
-    if active_cell:
-        #cell = dumps(active_cell, indent=2)
-        row = active_cell['row']
-        col = active_cell['column_id']
-        value = table_data[row][col]
-        out = get_res.enc_data(
-                my_type="Encounter",
-                my_id="2081026",
-                my_base="http://hapi.fhir.org/baseR4",
-                )  # use value to get data through a series of Gets and return as a table of data
-        out = f'### Encounter {value} Data\n\n{out}'
-    else:
+    try:
+            #cell = dumps(active_cell, indent=2)
+            row = active_cell['row']
+            col = active_cell['column_id']  #use hidden column id instead when hide fullUrl
+            value = table_data[row][col]
+            my_id = value.split('/')[-1]
+            my_type = value.split('/')[-2]
+            my_base = '/'.join(value.split('/')[:-2])
+            #print(my_id,my_type,my_base)
+
+    except Exception as e:
+        print(e)
         value = "no value"
-        out = 'no cell selected'
+        out = 'no resource id selected'
+    else:
+        out = get_res.enc_data(
+                my_base=my_base, #"http://hapi.fhir.org/baseR4",
+                my_type=my_type, #"Encounter",
+                my_id=my_id, #"2081026",
+                )  # use value to get data through a series of Gets and return as a table of data
+        out = f'### Summary of {my_type} {my_id}\n\n{out}'
 
     #return f'{value} gets you: {dumps(out, indent=2)}'
     return out
@@ -279,11 +286,13 @@ def update_charts(topic, my_type, start_date, end_date, n_intervals):
     data = data.loc[mask, :]
 
     if  topic != 'all':
-        data = data.loc[data["topic"]==topic]
+        data = data.loc[data["topic"]==topic] #sort by name
     if  my_type != 'all-types':
         data = data.loc[data["type"]==my_type]
 
     sorted_filtered_data = data.sort_values("timestamp", ascending=False)
+    #map to topic names
+    #add id only column
     volume_chart_data = sorted_filtered_data.to_dict('records')
 
     return (
