@@ -67,14 +67,14 @@ data_columns = [
 # #new_data = data[['Date','AveragePrice']].head()
 
 
-# external_stylesheets = [
-#     {
-#         "href": "https://fonts.googleapis.com/css2?"
-#         "family=Lato:wght@400;700&display=swap",
-#         "rel": "stylesheet",
-#     },
-# ]
-app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+external_stylesheets = [
+    {
+        "href": "https://fonts.googleapis.com/css2?"
+        "family=Lato:wght@400;700&display=swap",
+        "rel": "stylesheet",
+    },
+]
+app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP, external_stylesheets])
 app.title = "Da Vinci ADT Notifier!"
 
 
