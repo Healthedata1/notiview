@@ -12,15 +12,11 @@ Consider saving as native json
 Deploy to Pythonanywhere
 
 future stuff
- - add about me link
- - click on notification and get bundle back Using flask app (using transaction or a series of gets) and display as a card next to the table
-as a narrative of the results
-    - limit active cells only to event_id rows - unable to find information on how to do this - med
-    - create and use hidden row data and display only clickable id columns - hi
-    - put cards next each other - med
-    - links to to resouces -low
-    - audit logging - low
-    - remove unwanted toggle columns button
+- add about me link
+- highlight whole  - med
+- links to to resources -low
+- audit logging - low
+- fix card shadow - low
 '''
 
 import dash
@@ -73,14 +69,14 @@ data_columns = [
 #         "rel": "stylesheet",
 #     },
 # ]
-app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(__name__,external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.title = "Da Vinci ADT Notifier!"
 
 app.layout = html.Div(
     children=[
         dcc.Interval(
             id='interval-component',
-            interval=15*1000, # in milliseconds (every 15 seconds)
+            interval=5*60*1000, # in milliseconds (every 5 minutes)
             n_intervals=0
         ),
         html.Div(
