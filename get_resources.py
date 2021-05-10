@@ -1,5 +1,10 @@
 from json import dumps, loads
 from requests import get
+import logging
+
+logging.basicConfig(
+level=logging.DEBUG,
+format='[%(asctime)s] %(levelname)s in %(module)s %(lineno)d}: %(message)s')
 
 my_dict  = dict(
     patient = None,# f{Patient['name'][0]['given'][0]} {Patient['name']['family']}
@@ -10,7 +15,7 @@ my_dict  = dict(
     encounter_diagnosis = None,# Condition['code']['text'],
     discharge_disposition = None,# ,
     payer = None,# Coverage['payor'][0]['display'],
-    provider = None,# f{Practitioner['name'][0]['given'][0]} {Practitioner['name']['family']}
+    practitioner = None,# f{Practitioner['name'][0]['given'][0]} {Practitioner['name']['family']}
     provider_organization = None,# Organization['name']
     location = None,# Location[0]['location']['name']
   )
@@ -81,9 +86,10 @@ def enc_data(my_base,my_type,my_id,):
     try:
         my_id = enc['location'][0]['location']['reference'].split('/')[-1]
         loc = get_res(my_base,my_type,my_id)
-        #print(loc)
-        my_dict["location"]= loc['location']['name']
-    except (KeyError,TypeError):
+        #logging.info(f"loc={loc}")
+        my_dict["location"]= loc['name']
+    except (KeyError,TypeError) as e:
+        #logging.exception(e)
         my_dict["location"] = None
 
 
@@ -121,8 +127,8 @@ def enc_data(my_base,my_type,my_id,):
 
 def main():
     my_type = "Encounter"
-    my_id = "2073884"
-    my_base = "https://server.subscriptions.argo.run"
+    my_id = "5fe62cd5-bfcf-4d3b-a1e9-80d6f75d6f82"
+    my_base = "http://hapi.fhir.org/baseR4"
     print(enc_data(my_base,my_type,my_id,))
 
 # run app

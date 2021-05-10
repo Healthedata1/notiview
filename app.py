@@ -12,7 +12,8 @@ Consider saving as native json
 Deploy to Pythonanywhere
 
 future stuff
-- add about me link
+- get rid of nans in id table
+- add about me link - med
 - highlight whole  - med
 - links to to resources -low
 - audit logging - low
@@ -28,6 +29,11 @@ from dash.dependencies import Output, Input, State
 import dash_table
 import get_resources as get_res
 import dash_bootstrap_components as dbc
+import logging
+
+logging.basicConfig(
+level=logging.DEBUG,
+format='[%(asctime)s] %(levelname)s in %(module)s %(lineno)d}: %(message)s')
 
 my_path='/Users/ehaas/Documents/Python/Flask-pubsub-endpoint/' #local build
 #my_path='Flask-pubsub-endpoint/' #pythonanywhere build
@@ -139,7 +145,7 @@ app.layout = html.Div(
                         dcc.Dropdown(
                             id="type-filter",
                             options=[
-                                {"label": my_type, "value": my_type,}
+                                {"label": my_type.title(), "value": my_type,}
                                 for my_type in my_types
                             ],
                             value="all-types",
@@ -171,7 +177,7 @@ app.layout = html.Div(
                 html.Div(
                     children=dash_table.DataTable(
                         id="table",
-                        columns = [ {'name' : i , 'id': i} for i in data_columns],
+                        columns = [ {'name' : i.title() , 'id': i} for i in data_columns],
                     style_cell={'textAlign': 'left','padding': '5px',},
                     # style_cell_conditional=[
                     #     {
@@ -327,10 +333,10 @@ def update_period(n_intervals, start_date, end_date):
     ],
 )
 def update_charts(topic, my_type, start_date, end_date, n_intervals):
-    data = pd.read_csv(f"{my_path}data.csv")
+    data = pd.read_csv(f"{my_path}data.csv", keep_default_na=False)
 
     data["timestamp"] = pd.to_datetime(data["timestamp"], format="%Y-%m-%d")
-    print(data['timestamp'])
+    #print(data['timestamp'])
     mask = (
          (data.timestamp.dt.strftime('%Y-%m-%d') >= start_date)
       & (data.timestamp.dt.strftime('%Y-%m-%d') <= end_date)
@@ -342,12 +348,15 @@ def update_charts(topic, my_type, start_date, end_date, n_intervals):
         data = data.loc[data["topic"]==my_topic[0]]
     if  my_type != 'all-types':
         data = data.loc[data["type"]==my_type]
-
+    app.logger.info(f"data['event_id']] = {data['event_id']}")
     sorted_filtered_data = data.sort_values("timestamp", ascending=False)
     Topic = [my_topics[i] for i in sorted_filtered_data['topic']]#map to topic names
     sorted_filtered_data['Topic'] = Topic
+    app.logger.info(f"sorted_filtered_data['event_id']] = {sorted_filtered_data['event_id']}")
     Resource_ID = [str(i).split('/')[-1] for i in sorted_filtered_data['event_id']]#add id only column
+    app.logger.info(f"Resource_ID = {Resource_ID}")
     sorted_filtered_data['Resource ID'] = Resource_ID
+    app.logger.info(f"sorted_filtered_data.to_dict('records') = {sorted_filtered_data.to_dict('records')}")
     volume_chart_data = sorted_filtered_data.to_dict('records')
 
     return (
